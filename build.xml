@@ -1,0 +1,202 @@
+<?xml version="1.0"?>
+<project name="Hadoop Exercise" xmlns:ivy="antlib:org.apache.ivy.ant" default="compile" basedir=".">
+
+    <property name="userID"     value="Firstname.Lastname" />
+
+    <property name="src.dir"    value="${basedir}/src" />
+    <property name="lib.dir"    value="${basedir}/lib" />
+    <property name="res.dir"    value="${basedir}/res" />
+    <property name="build.dir"  value="${basedir}/bin" />
+    <property name="rel.dir"    value="${basedir}" />
+    <property name="mr-out.dir" value="${basedir}/out" />
+
+    <property name="build.encoding" value="ISO-8859-1" />
+
+    <property name="javac.debug" value="on" />
+    <property name="javac.optimize" value="off" />
+    <property name="javac.deprecation" value="on" />
+
+    <property name="javac.version" value="1.7" />
+
+    <property name="ivy.install.version" value="2.3.0-rc2" />
+    <property name="ivy.jar.file" value="${res.dir}/ivy.jar" />
+
+    <path id="project.classpath">
+         <fileset dir="${lib.dir}">
+              <include name="**/*.jar"/>
+         </fileset>
+    </path>
+
+    <path id="ivy.lib.path">
+         <fileset dir="${res.dir}" includes="*.jar"/>
+    </path>
+
+    <target name="download-ivy" unless="skip.download">
+         <mkdir dir="${res.dir}" />
+         <echo message="Downloading &amp; installing Apache Ivy..." />
+         <get src="http://repo1.maven.org/maven2/org/apache/ivy/ivy/${ivy.install.version}/ivy-${ivy.install.version}.jar" dest="${ivy.jar.file}" skipexisting="true" />
+    </target>
+
+    <available file="${res.dir}/sampleData" type="dir" property="sampleData.present"/>
+	<available file="${res.dir}/hadoop-2.7.1" type="dir" property="hadoop.present"/>
+
+    <target name="download-hadoop" unless="hadoop.present">
+         <mkdir dir="${res.dir}" />
+         <echo message="Downloading &amp; installing hadoop-2.7.1..." />
+         <get src="http://mirror.serversupportforum.de/apache/hadoop/common/hadoop-2.7.1/hadoop-2.7.1.tar.gz" dest="${res.dir}" skipexisting="true" />
+         <gunzip src="${res.dir}/hadoop-2.7.1.tar.gz" dest="${res.dir}/hadoop-2.7.1.tar" />
+         <untar src="${res.dir}/hadoop-2.7.1.tar" dest="${res.dir}"/>
+         <exec executable="chmod">
+             <arg value="+x"/>
+             <arg value="${res.dir}/hadoop-2.7.1/bin/hadoop"/>
+         </exec>
+      	 <delete file="${res.dir}/hadoop-2.7.1.tar.gz" />
+    	 <delete file="${res.dir}/hadoop-2.7.1.tar" />
+    </target>
+
+    <target name="download-sample-data" unless="sampleData.present">
+         <mkdir dir="${res.dir}" />
+         <echo message="Downloading &amp; installing sample data..." />
+         <get src="https://secure-redaktion.tu-dresden.de/die_tu_dresden/fakultaeten/fakultaet_informatik/sysa/se/teaching/courses/ws/systems_engineering_2/ws15/sampleData.zip" dest="${res.dir}" skipexisting="true" />
+    	 <unzip src="${res.dir}/sampleData.zip" dest="${res.dir}"/>
+    	 <delete file="${res.dir}/sampleData.zip" />
+    </target>
+
+    <target name="install-ivy" depends="download-ivy">
+         <taskdef resource="org/apache/ivy/ant/antlib.xml" uri="antlib:org.apache.ivy.ant" classpathref="ivy.lib.path" />
+    </target>
+
+    <target name="resolve" depends="install-ivy" description="retrieve dependencies with ivy">
+        <ivy:retrieve />
+    </target>
+
+    <target name="init" depends="download-hadoop,download-sample-data" description="Creates some directories">
+        <mkdir dir="${build.dir}" />
+        <mkdir dir="${res.dir}" />
+        <mkdir dir="${rel.dir}" />
+    </target>
+
+    <target name="compile" depends="init,resolve" description="Compiles the Hadoop Exercise application">
+        <javac encoding="${build.encoding}" includeantruntime="false"
+            srcdir="${src.dir}" destdir="${build.dir}" debug="${javac.debug}"
+            optimize="${javac.optimize}" target="${javac.version}"
+            source="${javac.version}" deprecation="${javac.deprecation}">
+            <classpath>
+                <fileset dir="${lib.dir}">
+                    <include name="**/*.jar"/>
+                </fileset>
+            </classpath>
+        </javac>
+    </target>
+
+    <target name="bundleSubmissionFiles" depends="compile"
+        description="Bundles the Hadoop Exercise files for submission as jar file">
+        <zip destfile="${basedir}/${userID}.zip" basedir="${basedir}/src/solutions"/>
+    </target>
+
+	<target name="checkforchanges">
+	    <uptodate property="nochanges" targetfile="${build.dir}/MapRedFileUtils.class">
+	        <srcfiles dir="${src.dir}" includes="**/*.java"/>
+	    </uptodate>
+	</target>
+
+    <target name="appJar" depends="checkforchanges,compile"
+	    description="Builds the Hadoop Exercise application as jar file">
+        <ivy:cachefileset setid="job.runclasspath" conf="default" />
+        <jar jarfile="${rel.dir}/job.jar" basedir="${build.dir}">
+             <manifest>
+                <attribute name="Class-Path" value="."/>
+             </manifest>
+             <fileset dir="${build.dir}"/>
+             <zipgroupfileset refid="job.runclasspath"/>
+        </jar>
+    </target>
+
+    <macrodef name="runJob">
+        <attribute name="class"/>
+        <attribute name="input"/>
+        <attribute name="output"/>
+        <sequential>
+            <exec executable="${res.dir}/hadoop-2.7.1/bin/hadoop">
+                <arg value="jar"/>
+                <arg value="job.jar"/>
+                <arg value="@{class}"/>
+                <arg value="${res.dir}/sampleData/@{input}"/>
+                <arg value="${basedir}/out/@{output}"/>
+            </exec>
+        </sequential>
+    </macrodef>
+
+    <target name="runMapRedWordFrequencyCount" depends="appJar" description="Runs the MapRedWordFrequencyCount example">
+        <runJob class="examples.wordcount.MapRedWordFrequencyCount" input="WordCount" output="WordCount/WordFrequency"/>
+    </target>
+
+    <target name="runMapRedLetterFrequencyCount" depends="appJar" description="Runs the MapRedLetterFrequencyCount example">
+        <runJob class="examples.wordcount.MapRedLetterFrequencyCount" input="WordCount" output="WordCount/LetterFrequency"/>
+    </target>
+
+    <target name="runMapRedInvertedIndex" depends="appJar" description="Runs the MapRedInvertedIndex example">
+        <runJob class="examples.invertedindex.MapRedInvertedIndex" input="InvertedIndex" output="WordCount/InvertedIndex"/>
+    </target>
+
+    <target name="runMapRedInvertedIndexUnique" depends="appJar" description="Runs the MapRedInvertedIndexUnique example">
+        <runJob class="examples.invertedindex.MapRedInvertedIndexUnique" input="InvertedIndex" output="WordCount/InvertedIndexUnique"/>
+    </target>
+
+    <target name="runMapRedCrashDeterministic" depends="appJar" description="Runs the MapRedCrashDeterministic example">
+        <runJob class="examples.faulty.MapRedCrashDeterministic" input="InvertedIndex" output="InvertedIndexUniqueFaulty1"/>
+    </target>
+
+    <target name="runMapRedCrashNonDeterministic" depends="appJar" description="Runs the MapRedCrashNonDeterministic example">
+        <runJob class="examples.faulty.MapRedCrashNonDeterministic" input="InvertedIndex" output="InvertedIndexUniqueFaulty2"/>
+    </target>
+
+    <target name="runMapRedARRs" depends="appJar" description="Runs the MapRedARRs example">
+        <runJob class="examples.dns.MapRedARRs" input="DNS" output="DNS/ARRs"/>
+    </target>
+
+    <target name="runMapRedUniqueNames" depends="appJar" description="Runs the MapRedUniqueNames example">
+        <runJob class="examples.dns.MapRedUniqueNames" input="DNS" output="DNS/UniqueNames"/>
+    </target>
+
+    <target name="runMapSolution1" depends="appJar" description="Runs solution #1">
+        <runJob class="solutions.assignment1.MapRedSolution1" input="DNS" output="Solution1"/>
+    </target>
+
+    <target name="runMapSolution2" depends="appJar" description="Runs solution #2">
+        <runJob class="solutions.assignment2.MapRedSolution2" input="DNS" output="Solution2"/>
+    </target>
+
+    <target name="runMapSolution3" depends="appJar" description="Runs solution #3">
+        <runJob class="solutions.assignment3.MapRedSolution3" input="DNS" output="Solution3"/>
+    </target>
+
+    <target name="runMapSolution4" depends="appJar" description="Runs solution #4">
+        <runJob class="solutions.assignment4.MapRedSolution4" input="DNS/cnameRRs.dns" output="Solution4"/>
+    </target>
+
+    <target name="runMapSolution5" depends="appJar" description="Runs solution #5">
+        <runJob class="solutions.assignment5.MapRedSolution5" input="DNS/cnameRRs.dns" output="Solution5"/>
+    </target>
+
+    <target name="runMapSolution7" depends="appJar" description="Runs solution #7">
+        <runJob class="solutions.assignment7.MapRedSolution7" input="ApacheLog" output="Solution7"/>
+    </target>
+
+
+    <target name="runAllExamples" depends="runMapRedWordFrequencyCount,
+        runMapRedLetterFrequencyCount,runMapRedInvertedIndex,
+        runMapRedInvertedIndexUnique,runMapRedARRs,runMapRedUniqueNames" />
+
+    <target name="runAllSolutions" depends="runMapSolution1,
+        runMapSolution2,runMapSolution3,runMapSolution4,
+        runMapSolution5,runMapSolution7" />
+
+    <target name="clean" description="Cleans everything up">
+        <delete dir="${build.dir}" />
+        <delete dir="${basedir}/out" />
+        <delete dir="${mr-out.dir}" />
+        <delete file="${basedir}/${userID}.zip" />
+        <delete file="${basedir}/job.jar" />
+    </target>
+</project>
