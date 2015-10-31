@@ -180,7 +180,7 @@
     </target>
 
     <target name="runMapSolution7" depends="appJar" description="Runs solution #7">
-        <runJob class="solutions.assignment7.MapRedSolution7" input="ApacheLog" output="Solution7"/>
+        <runJob class="solutions.assignment7.MapRedSolution7" input="ApacheLogs" output="Solution7"/>
     </target>
 
 
