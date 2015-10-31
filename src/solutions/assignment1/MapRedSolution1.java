@@ -21,6 +21,7 @@ import examples.MapRedFileUtils;
 import org.xbill.DNS.Type;
 import solutions.FrequencyReducer;
 import solutions.JobUtils;
+import solutions.WriteThroughReducer;
 
 import java.io.IOException;
 import java.util.StringTokenizer;
@@ -36,13 +37,6 @@ public class MapRedSolution1
         }
     }
 
-    public static class UniqueDomainsReducer extends Reducer<Text, NullWritable, Text, NullWritable> {
-        @Override
-        protected void reduce(Text key, Iterable<NullWritable> values, Context context) throws IOException, InterruptedException {
-            context.write(key, NullWritable.get());
-        }
-    }
-
     public static class SummationMap extends Mapper<Text, NullWritable, IntWritable, NullWritable> {
         private IntWritable result = new IntWritable();
 
@@ -54,8 +48,7 @@ public class MapRedSolution1
         }
     }
 
-    public static void main(String[] args) throws Exception
-    {
+    public static void main(String[] args) throws Exception {
         Configuration conf = new Configuration();
 
         String[] otherArgs =
@@ -72,7 +65,7 @@ public class MapRedSolution1
                 DNSFileInputFormat.class,
                 Text.class,
                 NullWritable.class,
-                UniqueDomainsReducer.class,
+                WriteThroughReducer.class,
                 SequenceFileOutputFormat.class,
                 Text.class,
                 NullWritable.class);
