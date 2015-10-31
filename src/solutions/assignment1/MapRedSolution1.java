@@ -6,7 +6,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.NullWritable;
-import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
@@ -15,10 +14,13 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.GenericOptionsParser;
 
 import examples.MapRedFileUtils;
 import org.xbill.DNS.Type;
+import solutions.FrequencyReducer;
+import solutions.JobUtils;
 
 import java.io.IOException;
 import java.util.StringTokenizer;
@@ -52,20 +54,6 @@ public class MapRedSolution1
         }
     }
 
-    public static class SummationReduce extends Reducer<IntWritable, NullWritable, IntWritable, IntWritable> {
-        private IntWritable result = new IntWritable();
-        @Override
-        protected void reduce(IntWritable key, Iterable<NullWritable> values, Context context) throws IOException, InterruptedException {
-            int sum = 0;
-            for (Object v: values) {
-                sum++;
-            }
-            result.set(sum);
-            context.write(key, result);
-        }
-
-    }
-
     public static void main(String[] args) throws Exception
     {
         Configuration conf = new Configuration();
@@ -73,49 +61,42 @@ public class MapRedSolution1
         String[] otherArgs =
             new GenericOptionsParser(conf, args).getRemainingArgs();
 
-        if (otherArgs.length != 2)
-        {
+        if (otherArgs.length != 2) {
             System.err.println("Usage: MapRedSolution1 <in> <out>");
             System.exit(2);
         }
 
         Job job = Job.getInstance(conf, "MapRed Solution #1");
-        job.setInputFormatClass(DNSFileInputFormat.class);
+        JobUtils.configureJob(job,
+                UniqueDomainsMapper.class,
+                DNSFileInputFormat.class,
+                Text.class,
+                NullWritable.class,
+                UniqueDomainsReducer.class,
+                SequenceFileOutputFormat.class,
+                Text.class,
+                NullWritable.class);
 
-        job.setMapperClass(UniqueDomainsMapper.class);
-        //job.setCombinerClass(UniqueDomainsReducer.class);
-        job.setReducerClass(UniqueDomainsReducer.class);
-        job.setMapOutputKeyClass(Text.class);
-        job.setMapOutputValueClass(NullWritable.class);
-        job.setOutputKeyClass(Text.class);
-        job.setOutputValueClass(NullWritable.class);
-
-
+        MapRedFileUtils.deleteDir("temp-output");
         final Path tempOutput = new Path("temp-output");
-        job.setOutputFormatClass(SequenceFileOutputFormat.class);
         FileInputFormat.addInputPath(job, new Path(otherArgs[0]));
         SequenceFileOutputFormat.setOutputPath(job, tempOutput);
 
-        MapRedFileUtils.deleteDir("temp-output");
-        if (!job.waitForCompletion(true)) {
-            System.exit(1);
-        }
-
         Job job2 = Job.getInstance(conf, "Summation");
-        job2.setInputFormatClass(SequenceFileInputFormat.class);
+        JobUtils.configureJob(job,
+                SummationMap.class,
+                SequenceFileInputFormat.class,
+                IntWritable.class,
+                NullWritable.class,
+                FrequencyReducer.class,
+                TextOutputFormat.class,
+                IntWritable.class,
+                IntWritable.class);
         SequenceFileInputFormat.addInputPath(job2, tempOutput);
-
-        job2.setMapperClass(SummationMap.class);
-        //job2.setCombinerClass(SummationReduce.class);
-        job2.setReducerClass(SummationReduce.class);
-        job2.setMapOutputKeyClass(IntWritable.class);
-        job2.setMapOutputValueClass(NullWritable.class);
-        job2.setOutputKeyClass(IntWritable.class);
-        job2.setOutputValueClass(IntWritable.class);
 
         FileOutputFormat.setOutputPath(job2, new Path(otherArgs[1]));
 
         MapRedFileUtils.deleteDir(otherArgs[1]);
-        System.exit(job2.waitForCompletion(true) ? 0 : 1);
+        JobUtils.runJobs(job, job2);
     }
 }
