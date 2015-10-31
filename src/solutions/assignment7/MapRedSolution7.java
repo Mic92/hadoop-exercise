@@ -30,9 +30,9 @@ public class MapRedSolution7
     }
 
     public static void main(String[] args) throws Exception {
-        Configuration conf = new Configuration();
+        final Configuration conf = new Configuration();
 
-        String[] otherArgs =
+        final String[] otherArgs =
             new GenericOptionsParser(conf, args).getRemainingArgs();
 
         if (otherArgs.length != 2) {
@@ -40,7 +40,7 @@ public class MapRedSolution7
             System.exit(2);
         }
 
-        Job job = Job.getInstance(conf, "MapRed Solution #7");
+        final Job job = Job.getInstance(conf, "MapRed Solution #7");
 
         JobUtils.configureJob(job,
                 ParseLogs.class,

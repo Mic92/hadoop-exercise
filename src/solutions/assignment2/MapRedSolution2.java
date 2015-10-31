@@ -33,9 +33,9 @@ public class MapRedSolution2
     }
 
     public static void main(String[] args) throws Exception {
-        Configuration conf = new Configuration();
+        final Configuration conf = new Configuration();
 
-        String[] otherArgs =
+        final String[] otherArgs =
             new GenericOptionsParser(conf, args).getRemainingArgs();
 
         if (otherArgs.length != 2) {
@@ -43,7 +43,7 @@ public class MapRedSolution2
             System.exit(2);
         }
 
-        Job job = Job.getInstance(conf, "MapRed Solution #2");
+        final Job job = Job.getInstance(conf, "MapRed Solution #2");
 
         FileInputFormat.addInputPath(job, new Path(otherArgs[0]));
         FileOutputFormat.setOutputPath(job, new Path(otherArgs[1]));

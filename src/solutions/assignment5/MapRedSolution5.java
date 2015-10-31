@@ -33,9 +33,9 @@ public class MapRedSolution5
 
 
     public static void main(String[] args) throws Exception {
-        Configuration conf = new Configuration();
+        final Configuration conf = new Configuration();
 
-        String[] otherArgs =
+        final String[] otherArgs =
             new GenericOptionsParser(conf, args).getRemainingArgs();
 
         if (otherArgs.length != 2) {
