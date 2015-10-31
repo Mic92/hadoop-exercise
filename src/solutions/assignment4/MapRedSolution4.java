@@ -17,7 +17,7 @@ import com.google.common.net.InetAddresses;
 import examples.MapRedFileUtils;
 import org.xbill.DNS.Type;
 import solutions.JobUtils;
-import solutions.WriteThroughReducer;
+import solutions.WriteKeyReducer;
 
 import java.io.IOException;
 
@@ -53,7 +53,7 @@ public class MapRedSolution4
                 DNSFileInputFormat.class,
                 Text.class,
                 NullWritable.class,
-                WriteThroughReducer.class,
+                WriteKeyReducer.class,
                 TextOutputFormat.class,
                 Text.class,
                 NullWritable.class);
