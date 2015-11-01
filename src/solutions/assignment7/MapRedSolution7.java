@@ -1,7 +1,5 @@
 package solutions.assignment7;
 
-import examples.apachelogs.AccessLogFormat;
-import examples.apachelogs.AccessLogIO;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
@@ -11,9 +9,10 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.GenericOptionsParser;
-
 import solutions.FrequencyReducer;
 import solutions.JobUtils;
+import solutions.assignment6.AccessLogFormat;
+import solutions.assignment6.AccessLogIO;
 
 import java.io.IOException;
 

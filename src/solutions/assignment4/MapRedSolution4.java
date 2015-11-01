@@ -1,5 +1,6 @@
 package solutions.assignment4;
 
+import com.google.common.net.InetAddresses;
 import examples.dns.DNSFileInputFormat;
 import examples.dns.DNSRecord;
 import examples.dns.DNSRecordIO;
@@ -11,8 +12,6 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.GenericOptionsParser;
-import com.google.common.net.InetAddresses;
-
 import org.xbill.DNS.Type;
 import solutions.JobUtils;
 import solutions.KeyReducer;

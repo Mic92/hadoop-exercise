@@ -1,8 +1,6 @@
-package examples.apachelogs;
+package solutions.assignment6;
 
-import java.io.IOException;
-import java.text.ParseException;
-
+import examples.invertedindex.LineRecordReaderFilename;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.io.Text;
@@ -10,7 +8,8 @@ import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
-import examples.invertedindex.LineRecordReaderFilename;
+import java.io.IOException;
+import java.text.ParseException;
 
 /**
  * This class treats lines in a DNS file as {@link AccessLogIO} objects.

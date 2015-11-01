@@ -1,4 +1,4 @@
-package examples.apachelogs;
+package solutions.assignment6;
 
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputSplit;

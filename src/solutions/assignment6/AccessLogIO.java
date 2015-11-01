@@ -1,4 +1,4 @@
-package examples.apachelogs;
+package solutions.assignment6;
 
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
