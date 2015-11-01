@@ -1,36 +1,103 @@
 package solutions.assignment5;
 
-import com.google.common.net.InetAddresses;
+import examples.MapRedFileUtils;
+import examples.dns.DNSFileInputFormat;
 import examples.dns.DNSRecordIO;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.*;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.KeyValueTextInputFormat;
+import org.apache.hadoop.mapreduce.lib.join.CompositeInputFormat;
+import org.apache.hadoop.mapreduce.lib.join.TupleWritable;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.util.GenericOptionsParser;
 
-import examples.MapRedFileUtils;
 import org.xbill.DNS.Type;
-import solutions.JobUtils;
 
 import java.io.IOException;
 
-public class MapRedSolution5
-{
-    public static class ExtractCnameWithIPs extends Mapper<Text, DNSRecordIO, Text, NullWritable> {
+import static solutions.JobUtils.configureMap;
+import static solutions.JobUtils.runJobs;
+
+public class MapRedSolution5 {
+    final static Path cnameListPath = new Path("solution5-cnameindex");
+    final static Path cnameChainPath = new Path("solution5-chain0");
+
+    public static class IndexCnames extends Mapper<Text, DNSRecordIO, Text, NullWritable> {
         @Override
         protected void map(Text key, DNSRecordIO record, Mapper.Context context) throws IOException, InterruptedException {
-            final String rdata = record.getRdata().toString();
-            // one does not simply parse inet addresses with regex
-            if (record.getType().get() == Type.CNAME && InetAddresses.isInetAddress(rdata)) {
-                context.write(new Text(record.getRawRecord().toString()), NullWritable.get());
+            if (record.getType().get() == Type.CNAME) {
+                context.write(record.getName(), record.getRdata());
             }
         }
     }
 
+    public static class ReverseIndexCnames extends Mapper<Text, DNSRecordIO, Text, NullWritable> {
+        @Override
+        protected void map(Text key, DNSRecordIO record, Mapper.Context context) throws IOException, InterruptedException {
+            if (record.getType().get() == Type.CNAME) {
+                context.write(record.getRdata(), record.getName());
+            }
+        }
+    }
+
+    public static class BuildCnameChain extends Mapper<Text, TupleWritable, Text, Text> {
+        @Override
+        protected void map(Text key, TupleWritable tuple, Context context) throws IOException, InterruptedException {
+            if (!(tuple.has(0) && tuple.has(1))) {
+                return;
+            }
+            final Text chain = (Text)tuple.get(0), target = (Text) tuple.get(1);
+            context.write(target, new Text(chain + ";" + key));
+        }
+    }
+
+    public static class FormatCnameChain extends Mapper<Text, Text, Text, NullWritable> {
+        @Override
+        protected void map(Text key, Text value, Context context) throws IOException, InterruptedException {
+            context.write(new Text(";" + value.toString()), NullWritable.get());
+        }
+    }
+
+    public static void buildCnameChains(Path destination, int n) throws IOException, ClassNotFoundException, InterruptedException {
+        final Configuration joinConf = new Configuration();
+        Path inputPath = cnameChainPath;
+        for (int i = 1; i <= n; i++) {
+
+            joinConf.set("mapreduce.join.expr", CompositeInputFormat.compose(
+                    "inner", KeyValueTextInputFormat.class,
+                    inputPath, cnameListPath
+            ));
+            final Job buildChainJob = Job.getInstance(joinConf, "MapRed Solution #5: Build Chain "+i);
+            configureMap(buildChainJob,
+                    BuildCnameChain.class,
+                    CompositeInputFormat.class,
+                    Text.class,
+                    Text.class,
+                    true);
+
+            final Path chainIntermediatePath = Path.mergePaths(destination, new Path("/chain" + i + "-intermediate"));
+            FileInputFormat.addInputPath(buildChainJob, inputPath);
+            FileOutputFormat.setOutputPath(buildChainJob, chainIntermediatePath);
+
+            final Path chainPath = Path.mergePaths(destination, new Path("/chain" + i));
+            final Job formatChainJob = Job.getInstance(joinConf, "MapRed Solution #5: Write Chain "+i);
+            configureMap(formatChainJob,
+                    FormatCnameChain.class,
+                    KeyValueTextInputFormat.class,
+                    Text.class,
+                    NullWritable.class,
+                    false);
+            FileInputFormat.addInputPath(formatChainJob, chainIntermediatePath);
+            FileOutputFormat.setOutputPath(formatChainJob, chainPath);
+            runJobs(buildChainJob, formatChainJob);
+
+            inputPath = chainIntermediatePath;
+        }
+    }
 
     public static void main(String[] args) throws Exception {
         final Configuration conf = new Configuration();
@@ -43,14 +110,31 @@ public class MapRedSolution5
             System.exit(2);
         }
 
-        Job job = Job.getInstance(conf, "MapRed Solution #5");
+        final Job indexJob = Job.getInstance(conf, "MapRed Solution #5: Cname list");
+        configureMap(indexJob,
+                IndexCnames.class,
+                DNSFileInputFormat.class,
+                Text.class,
+                Text.class,
+                true);
+        MapRedFileUtils.deleteDir(cnameListPath.toString());
+        FileInputFormat.addInputPath(indexJob, new Path(otherArgs[0]));
+        FileOutputFormat.setOutputPath(indexJob, cnameListPath);
 
-        /* your code goes in here*/
+        final Job reverseIndexJob = Job.getInstance(conf, "MapRed Solution #5: Cname Chain 0");
+        configureMap(reverseIndexJob,
+                ReverseIndexCnames.class,
+                DNSFileInputFormat.class,
+                Text.class,
+                Text.class,
+                true);
+        MapRedFileUtils.deleteDir(cnameChainPath.toString());
+        FileInputFormat.addInputPath(reverseIndexJob, new Path(otherArgs[0]));
+        FileOutputFormat.setOutputPath(reverseIndexJob, cnameChainPath);
+        runJobs(indexJob, reverseIndexJob);
 
-        FileInputFormat.addInputPath(job, new Path(otherArgs[0]));
-        FileOutputFormat.setOutputPath(job, new Path(otherArgs[1]));
-
-        MapRedFileUtils.deleteDir(otherArgs[1]);
-        JobUtils.runJobs(job);
+        final Path destination = new Path(otherArgs[1]);
+        MapRedFileUtils.deleteDir(destination.toString());
+        buildCnameChains(destination, 3);
     }
 }

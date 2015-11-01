@@ -10,15 +10,30 @@ import org.apache.hadoop.mapreduce.Mapper;
 import java.io.IOException;
 
 public abstract class JobUtils {
-    public static void configureJob(Job j,
+    public static void configureMap(Job j,
                                     Class<? extends Mapper> mapper,
                                     Class<? extends InputFormat> inFormat,
                                     Class<? extends Writable> mapperKey,
                                     Class<? extends Writable> mapperValue,
-                                    Class<? extends Reducer> reducer,
-                                    Class<? extends OutputFormat> outFormat,
-                                    Class<? extends Writable> outputKey,
-                                    Class<? extends Writable> outputValue) {
+                                    boolean sort) {
+        j.setMapperClass(mapper);
+        j.setInputFormatClass(inFormat);
+        j.setOutputKeyClass(mapperKey);
+        j.setOutputValueClass(mapperValue);
+        if (!sort) {
+            j.setNumReduceTasks(0);
+        }
+    }
+    public static void configureMapReduce(Job j,
+                                          Class<? extends Mapper> mapper,
+                                          Class<? extends InputFormat> inFormat,
+                                          Class<? extends Writable> mapperKey,
+                                          Class<? extends Writable> mapperValue,
+                                          Class<? extends Reducer> reducer,
+                                          Class<? extends OutputFormat> outFormat,
+                                          Class<? extends Writable> outputKey,
+                                          Class<? extends Writable> outputValue) {
+
         j.setMapperClass(mapper);
         j.setInputFormatClass(inFormat);
         j.setMapOutputKeyClass(mapperKey);

@@ -18,9 +18,11 @@ import com.google.common.net.InetAddresses;
 import examples.MapRedFileUtils;
 import org.xbill.DNS.Type;
 import solutions.JobUtils;
-import solutions.WriteKeyReducer;
+import solutions.KeyReducer;
 
 import java.io.IOException;
+
+import static solutions.JobUtils.configureMapReduce;
 
 public class MapRedSolution4 {
     public static class ExtractCnameWithIps extends Mapper<Text, DNSRecordIO, Text, NullWritable> {
@@ -51,12 +53,12 @@ public class MapRedSolution4 {
         }
 
         final Job job = Job.getInstance(conf, "MapRed Solution #4");
-        JobUtils.configureJob(job,
+        configureMapReduce(job,
                 ExtractCnameWithIps.class,
                 DNSFileInputFormat.class,
                 Text.class,
                 NullWritable.class,
-                WriteKeyReducer.class,
+                KeyReducer.class,
                 TextOutputFormat.class,
                 Text.class,
                 NullWritable.class);

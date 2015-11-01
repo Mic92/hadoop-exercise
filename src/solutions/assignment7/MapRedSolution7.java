@@ -20,6 +20,8 @@ import solutions.JobUtils;
 
 import java.io.IOException;
 
+import static solutions.JobUtils.configureMapReduce;
+
 public class MapRedSolution7 {
     final static String HOST = "http://localhost";
     public static class ParseLogs extends Mapper<Text, AccessLogIO, Text, NullWritable> {
@@ -44,7 +46,7 @@ public class MapRedSolution7 {
         }
 
         final Job job = Job.getInstance(conf, "MapRed Solution #7");
-        JobUtils.configureJob(job,
+        configureMapReduce(job,
                 ParseLogs.class,
                 AccessLogFormat.class,
                 Text.class,

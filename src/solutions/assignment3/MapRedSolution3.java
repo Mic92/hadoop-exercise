@@ -16,9 +16,11 @@ import org.apache.hadoop.util.GenericOptionsParser;
 import examples.MapRedFileUtils;
 import org.xbill.DNS.Type;
 import solutions.JobUtils;
-import solutions.WriteKeyReducer;
+import solutions.KeyReducer;
 
 import java.io.IOException;
+
+import static solutions.JobUtils.configureMapReduce;
 
 public class MapRedSolution3 {
     public static class ExtractCnameIdentity extends Mapper<Text, DNSRecordIO, Text, NullWritable> {
@@ -44,12 +46,12 @@ public class MapRedSolution3 {
         }
 
         final Job job = Job.getInstance(conf, "MapRed Solution #3");
-        JobUtils.configureJob(job,
+        configureMapReduce(job,
                 ExtractCnameIdentity.class,
                 DNSFileInputFormat.class,
                 Text.class,
                 NullWritable.class,
-                WriteKeyReducer.class,
+                KeyReducer.class,
                 TextOutputFormat.class,
                 Text.class,
                 NullWritable.class);

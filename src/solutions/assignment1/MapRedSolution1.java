@@ -22,6 +22,9 @@ import solutions.JobUtils;
 import java.io.IOException;
 import java.util.StringTokenizer;
 
+import static solutions.JobUtils.configureMapReduce;
+
+
 public class MapRedSolution1 {
     public static class GetHosts extends Mapper<Text, DNSRecordIO, IntWritable, NullWritable> {
         final IntWritable level = new IntWritable(0);
@@ -50,7 +53,7 @@ public class MapRedSolution1 {
         }
 
         final Job job = Job.getInstance(conf, "MapRed Solution #1");
-        JobUtils.configureJob(job,
+        configureMapReduce(job,
                 GetHosts.class,
                 DNSFileInputFormat.class,
                 IntWritable.class,

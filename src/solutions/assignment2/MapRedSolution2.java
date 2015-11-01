@@ -21,6 +21,8 @@ import solutions.JobUtils;
 
 import java.io.IOException;
 
+import static solutions.JobUtils.configureMapReduce;
+
 public class MapRedSolution2 {
     public static class ExtractIps extends Mapper<Text, DNSRecordIO, Text, NullWritable> {
         @Override
@@ -43,7 +45,7 @@ public class MapRedSolution2 {
         }
 
         final Job job = Job.getInstance(conf, "MapRed Solution #2");
-        JobUtils.configureJob(job,
+        configureMapReduce(job,
                 ExtractIps.class,
                 DNSFileInputFormat.class,
                 Text.class,
