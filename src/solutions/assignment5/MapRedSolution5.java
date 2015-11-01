@@ -1,6 +1,5 @@
 package solutions.assignment5;
 
-import examples.MapRedFileUtils;
 import examples.dns.DNSFileInputFormat;
 import examples.dns.DNSRecordIO;
 import org.apache.hadoop.conf.Configuration;
@@ -8,11 +7,9 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.*;
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.KeyValueTextInputFormat;
 import org.apache.hadoop.mapreduce.lib.join.CompositeInputFormat;
 import org.apache.hadoop.mapreduce.lib.join.TupleWritable;
-import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.util.GenericOptionsParser;
 
 import org.xbill.DNS.Type;
@@ -72,29 +69,27 @@ public class MapRedSolution5 {
                     inputPath, cnameListPath
             ));
             final Job buildChainJob = Job.getInstance(joinConf, "MapRed Solution #5: Build Chain "+i);
+            final Path chainIntermediatePath = Path.mergePaths(destination, new Path("/chain" + i + "-intermediate"));
             configureMap(buildChainJob,
                     BuildCnameChain.class,
+                    inputPath,
                     CompositeInputFormat.class,
                     Text.class,
                     Text.class,
+                    chainIntermediatePath,
                     true);
-
-            final Path chainIntermediatePath = Path.mergePaths(destination, new Path("/chain" + i + "-intermediate"));
-            FileInputFormat.addInputPath(buildChainJob, inputPath);
-            FileOutputFormat.setOutputPath(buildChainJob, chainIntermediatePath);
 
             final Path chainPath = Path.mergePaths(destination, new Path("/chain" + i));
             final Job formatChainJob = Job.getInstance(joinConf, "MapRed Solution #5: Write Chain "+i);
             configureMap(formatChainJob,
                     FormatCnameChain.class,
+                    chainIntermediatePath,
                     KeyValueTextInputFormat.class,
                     Text.class,
                     NullWritable.class,
+                    chainPath,
                     false);
-            FileInputFormat.addInputPath(formatChainJob, chainIntermediatePath);
-            FileOutputFormat.setOutputPath(formatChainJob, chainPath);
             runJobs(buildChainJob, formatChainJob);
-
             inputPath = chainIntermediatePath;
         }
     }
@@ -113,28 +108,24 @@ public class MapRedSolution5 {
         final Job indexJob = Job.getInstance(conf, "MapRed Solution #5: Cname list");
         configureMap(indexJob,
                 IndexCnames.class,
+                new Path(otherArgs[0]),
                 DNSFileInputFormat.class,
                 Text.class,
                 Text.class,
+                cnameListPath,
                 true);
-        MapRedFileUtils.deleteDir(cnameListPath.toString());
-        FileInputFormat.addInputPath(indexJob, new Path(otherArgs[0]));
-        FileOutputFormat.setOutputPath(indexJob, cnameListPath);
 
         final Job reverseIndexJob = Job.getInstance(conf, "MapRed Solution #5: Cname Chain 0");
         configureMap(reverseIndexJob,
                 ReverseIndexCnames.class,
+                new Path(otherArgs[0]),
                 DNSFileInputFormat.class,
                 Text.class,
                 Text.class,
+                cnameChainPath,
                 true);
-        MapRedFileUtils.deleteDir(cnameChainPath.toString());
-        FileInputFormat.addInputPath(reverseIndexJob, new Path(otherArgs[0]));
-        FileOutputFormat.setOutputPath(reverseIndexJob, cnameChainPath);
         runJobs(indexJob, reverseIndexJob);
 
-        final Path destination = new Path(otherArgs[1]);
-        MapRedFileUtils.deleteDir(destination.toString());
-        buildCnameChains(destination, 3);
+        buildCnameChains(new Path(otherArgs[1]), 3);
     }
 }

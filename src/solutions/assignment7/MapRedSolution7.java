@@ -9,12 +9,9 @@ import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
-import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.GenericOptionsParser;
 
-import examples.MapRedFileUtils;
 import solutions.FrequencyReducer;
 import solutions.JobUtils;
 
@@ -48,17 +45,15 @@ public class MapRedSolution7 {
         final Job job = Job.getInstance(conf, "MapRed Solution #7");
         configureMapReduce(job,
                 ParseLogs.class,
+                new Path(otherArgs[0]),
                 AccessLogFormat.class,
                 Text.class,
                 NullWritable.class,
                 FrequencyReducer.class,
+                new Path(otherArgs[1]),
                 TextOutputFormat.class,
                 Text.class,
                 IntWritable.class);
-
-        FileInputFormat.addInputPath(job, new Path(otherArgs[0]));
-        FileOutputFormat.setOutputPath(job, new Path(otherArgs[1]));
-        MapRedFileUtils.deleteDir(otherArgs[1]);
         JobUtils.runJobs(job);
     }
 }

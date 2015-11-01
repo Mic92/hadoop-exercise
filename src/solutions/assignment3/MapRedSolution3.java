@@ -8,12 +8,9 @@ import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
-import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.GenericOptionsParser;
 
-import examples.MapRedFileUtils;
 import org.xbill.DNS.Type;
 import solutions.JobUtils;
 import solutions.KeyReducer;
@@ -48,17 +45,16 @@ public class MapRedSolution3 {
         final Job job = Job.getInstance(conf, "MapRed Solution #3");
         configureMapReduce(job,
                 ExtractCnameIdentity.class,
+                new Path(otherArgs[0]),
                 DNSFileInputFormat.class,
                 Text.class,
                 NullWritable.class,
                 KeyReducer.class,
+                new Path(otherArgs[1]),
                 TextOutputFormat.class,
                 Text.class,
                 NullWritable.class);
 
-        FileInputFormat.addInputPath(job, new Path(otherArgs[0]));
-        FileOutputFormat.setOutputPath(job, new Path(otherArgs[1]));
-        MapRedFileUtils.deleteDir(otherArgs[1]);
         JobUtils.runJobs(job);
     }
 }
