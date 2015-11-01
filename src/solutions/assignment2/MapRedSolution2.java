@@ -21,8 +21,7 @@ import solutions.JobUtils;
 
 import java.io.IOException;
 
-public class MapRedSolution2
-{
+public class MapRedSolution2 {
     public static class ExtractIps extends Mapper<Text, DNSRecordIO, Text, NullWritable> {
         @Override
         protected void map(Text key, DNSRecordIO record, Mapper.Context context) throws IOException, InterruptedException {
@@ -44,9 +43,6 @@ public class MapRedSolution2
         }
 
         final Job job = Job.getInstance(conf, "MapRed Solution #2");
-
-        FileInputFormat.addInputPath(job, new Path(otherArgs[0]));
-        FileOutputFormat.setOutputPath(job, new Path(otherArgs[1]));
         JobUtils.configureJob(job,
                 ExtractIps.class,
                 DNSFileInputFormat.class,
@@ -57,6 +53,8 @@ public class MapRedSolution2
                 Text.class,
                 LongWritable.class);
 
+        FileInputFormat.addInputPath(job, new Path(otherArgs[0]));
+        FileOutputFormat.setOutputPath(job, new Path(otherArgs[1]));
         MapRedFileUtils.deleteDir(otherArgs[1]);
         JobUtils.runJobs(job);
     }

@@ -10,9 +10,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
-import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
-import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.GenericOptionsParser;
 
@@ -20,30 +18,23 @@ import examples.MapRedFileUtils;
 import org.xbill.DNS.Type;
 import solutions.FrequencyReducer;
 import solutions.JobUtils;
-import solutions.WriteKeyReducer;
 
 import java.io.IOException;
 import java.util.StringTokenizer;
 
-public class MapRedSolution1
-{
-    public static class UniqueDomainsMapper extends Mapper<Text, DNSRecordIO, Text, NullWritable> {
+public class MapRedSolution1 {
+    public static class GetHosts extends Mapper<Text, DNSRecordIO, IntWritable, NullWritable> {
+        final IntWritable level = new IntWritable(0);
         @Override
         protected void map(Text key, DNSRecordIO record, Context context) throws IOException, InterruptedException {
-            if (record.getType().get() == Type.NS) {
-                context.write(record.getName(), NullWritable.get());
+            // only address records, not nameserver delegations:
+            // https://auditorium.inf.tu-dresden.de/de/questions/3465#answer_3550
+            if (record.getType().get() == Type.A || record.getType().get() == Type.AAAA) {
+                final String name = record.getRawRecord().getName();
+                int dots = new StringTokenizer(name, ".").countTokens();
+                level.set(dots);
+                context.write(level, NullWritable.get());
             }
-        }
-    }
-
-    public static class SummationMap extends Mapper<Text, NullWritable, IntWritable, NullWritable> {
-        private IntWritable result = new IntWritable();
-
-        @Override
-        protected void map(Text key, NullWritable ignored, Context context) throws IOException, InterruptedException {
-            StringTokenizer tokenizer = new StringTokenizer(key.toString(), ".");
-            result.set(tokenizer.countTokens());
-            context.write(result, NullWritable.get());
         }
     }
 
@@ -60,35 +51,18 @@ public class MapRedSolution1
 
         final Job job = Job.getInstance(conf, "MapRed Solution #1");
         JobUtils.configureJob(job,
-                UniqueDomainsMapper.class,
+                GetHosts.class,
                 DNSFileInputFormat.class,
-                Text.class,
-                NullWritable.class,
-                WriteKeyReducer.class,
-                SequenceFileOutputFormat.class,
-                Text.class,
-                NullWritable.class);
-
-        MapRedFileUtils.deleteDir("temp-output");
-        final Path tempOutput = new Path("temp-output");
-        FileInputFormat.addInputPath(job, new Path(otherArgs[0]));
-        SequenceFileOutputFormat.setOutputPath(job, tempOutput);
-
-        Job job2 = Job.getInstance(conf, "Summation");
-        JobUtils.configureJob(job,
-                SummationMap.class,
-                SequenceFileInputFormat.class,
                 IntWritable.class,
                 NullWritable.class,
                 FrequencyReducer.class,
                 TextOutputFormat.class,
                 IntWritable.class,
                 IntWritable.class);
-        SequenceFileInputFormat.addInputPath(job2, tempOutput);
 
-        FileOutputFormat.setOutputPath(job2, new Path(otherArgs[1]));
-
+        FileInputFormat.addInputPath(job, new Path(otherArgs[0]));
+        FileOutputFormat.setOutputPath(job, new Path(otherArgs[1]));
         MapRedFileUtils.deleteDir(otherArgs[1]);
-        JobUtils.runJobs(job, job2);
+        JobUtils.runJobs(job);
     }
 }

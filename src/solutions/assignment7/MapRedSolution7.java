@@ -20,12 +20,15 @@ import solutions.JobUtils;
 
 import java.io.IOException;
 
-public class MapRedSolution7
-{
+public class MapRedSolution7 {
+    final static String HOST = "http://localhost";
     public static class ParseLogs extends Mapper<Text, AccessLogIO, Text, NullWritable> {
+        private final Text uri = new Text();
         @Override
         protected void map(Text key, AccessLogIO record, Mapper.Context context) throws IOException, InterruptedException {
-            context.write(record.getUri(), NullWritable.get());
+            // extend to valid URI according to https://auditorium.inf.tu-dresden.de/de/questions/3471#answer_3551
+            uri.set(HOST + record.getRawRecord().getUri());
+            context.write(uri, NullWritable.get());
         }
     }
 
@@ -41,7 +44,6 @@ public class MapRedSolution7
         }
 
         final Job job = Job.getInstance(conf, "MapRed Solution #7");
-
         JobUtils.configureJob(job,
                 ParseLogs.class,
                 AccessLogFormat.class,
@@ -54,7 +56,6 @@ public class MapRedSolution7
 
         FileInputFormat.addInputPath(job, new Path(otherArgs[0]));
         FileOutputFormat.setOutputPath(job, new Path(otherArgs[1]));
-
         MapRedFileUtils.deleteDir(otherArgs[1]);
         JobUtils.runJobs(job);
     }

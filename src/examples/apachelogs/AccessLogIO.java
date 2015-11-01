@@ -51,6 +51,9 @@ public class AccessLogIO extends Record {
     public void setRawRecord(AccessLogRecord rec) {
         this.rec = rec;
     }
+    public AccessLogRecord getRawRecord() {
+        return rec;
+    }
 
     public void setBrowser(Text browser) {
         rec.setBrowser(browser.toString());

@@ -20,8 +20,7 @@ import solutions.WriteKeyReducer;
 
 import java.io.IOException;
 
-public class MapRedSolution3
-{
+public class MapRedSolution3 {
     public static class ExtractCnameIdentity extends Mapper<Text, DNSRecordIO, Text, NullWritable> {
         @Override
         protected void map(Text key, DNSRecordIO record, Mapper.Context context) throws IOException, InterruptedException {
@@ -44,10 +43,7 @@ public class MapRedSolution3
             System.exit(2);
         }
 
-
         final Job job = Job.getInstance(conf, "MapRed Solution #3");
-        FileInputFormat.addInputPath(job, new Path(otherArgs[0]));
-        FileOutputFormat.setOutputPath(job, new Path(otherArgs[1]));
         JobUtils.configureJob(job,
                 ExtractCnameIdentity.class,
                 DNSFileInputFormat.class,
@@ -58,6 +54,8 @@ public class MapRedSolution3
                 Text.class,
                 NullWritable.class);
 
+        FileInputFormat.addInputPath(job, new Path(otherArgs[0]));
+        FileOutputFormat.setOutputPath(job, new Path(otherArgs[1]));
         MapRedFileUtils.deleteDir(otherArgs[1]);
         JobUtils.runJobs(job);
     }

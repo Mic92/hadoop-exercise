@@ -1,6 +1,7 @@
 package solutions.assignment4;
 
 import examples.dns.DNSFileInputFormat;
+import examples.dns.DNSRecord;
 import examples.dns.DNSRecordIO;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -21,21 +22,24 @@ import solutions.WriteKeyReducer;
 
 import java.io.IOException;
 
-public class MapRedSolution4
-{
-    public static class ExtractCnameWithIPs extends Mapper<Text, DNSRecordIO, Text, NullWritable> {
+public class MapRedSolution4 {
+    public static class ExtractCnameWithIps extends Mapper<Text, DNSRecordIO, Text, NullWritable> {
         @Override
-        protected void map(Text key, DNSRecordIO record, Mapper.Context context) throws IOException, InterruptedException {
-            final String rdata = record.getRdata().toString();
-            // one does not simply parse inet addresses with regex
-            if (record.getType().get() == Type.CNAME && InetAddresses.isInetAddress(rdata)) {
-                context.write(new Text(record.getRawRecord().toString()), NullWritable.get());
+        protected void map(Text key, DNSRecordIO record_, Mapper.Context context) throws IOException, InterruptedException {
+            final DNSRecord record = record_.getRawRecord();
+            final String rdata = record.getRdata();
+            // one does not simply parse addresses with regex
+            if (record.getType() != Type.CNAME || rdata.length() < 2) {
+                return;
+            }
+            final String withoutTrailingDot = rdata.substring(0, rdata.length() - 2);
+            if (InetAddresses.isInetAddress(withoutTrailingDot)) {
+                context.write(new Text(record.toString()), NullWritable.get());
             }
         }
     }
 
-    public static void main(String[] args) throws Exception
-    {
+    public static void main(String[] args) throws Exception {
         final Configuration conf = new Configuration();
 
         final String[] otherArgs =
@@ -47,9 +51,8 @@ public class MapRedSolution4
         }
 
         final Job job = Job.getInstance(conf, "MapRed Solution #4");
-
         JobUtils.configureJob(job,
-                ExtractCnameWithIPs.class,
+                ExtractCnameWithIps.class,
                 DNSFileInputFormat.class,
                 Text.class,
                 NullWritable.class,
@@ -60,7 +63,6 @@ public class MapRedSolution4
 
         FileInputFormat.addInputPath(job, new Path(otherArgs[0]));
         FileOutputFormat.setOutputPath(job, new Path(otherArgs[1]));
-
         MapRedFileUtils.deleteDir(otherArgs[1]);
         JobUtils.runJobs(job);
     }
