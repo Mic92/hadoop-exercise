@@ -1,6 +1,7 @@
 package solutions.assignment5;
 
 import examples.dns.DNSFileInputFormat;
+import examples.dns.DNSRecord;
 import examples.dns.DNSRecordIO;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -26,7 +27,8 @@ public class MapRedSolution5 {
     public static class IndexCnames extends Mapper<Text, DNSRecordIO, Text, NullWritable> {
         @Override
         protected void map(Text key, DNSRecordIO record, Mapper.Context context) throws IOException, InterruptedException {
-            if (record.getType().get() == Type.CNAME) {
+            DNSRecord raw = record.getRawRecord();
+            if (raw.getType() == Type.CNAME && !raw.getName().equals(raw.getRdata())) {
                 context.write(record.getName(), record.getRdata());
             }
         }
